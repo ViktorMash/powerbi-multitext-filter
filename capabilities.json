@@ -1,0 +1,71 @@
+{
+    "dataRoles": [
+        {
+            "name": "searchFields",
+            "kind": "Grouping",
+            "displayName": "Search Fields",
+            "description": "Select fields to search in"
+        }
+    ],
+    "dataViewMappings": [
+        {
+            "conditions": [
+                {
+                    "searchFields": {
+                        "min": 1
+                    }
+                }
+            ],
+            "categorical": {
+                "categories": {
+                    "for": {
+                        "in": "searchFields"
+                    }
+                },
+                "values": {
+                    "select": [
+                        {
+                            "bind": {
+                                "to": "searchFields"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "objects": {
+        "generalSettings": {
+            "displayName": "General Settings",
+            "properties": {
+                "placeholder": {
+                    "displayName": "Placeholder Text",
+                    "type": {
+                        "text": true
+                    }
+                },
+                "buttonText": {
+                    "displayName": "Button Text",
+                    "type": {
+                        "text": true
+                    }
+                },
+                "caseSensitive": {
+                    "displayName": "Case Sensitive Search",
+                    "type": {
+                        "bool": true
+                    }
+                }
+            }
+        }
+    },
+    "supportsHighlight": true,
+    "supportsMultiVisualSelection": true,
+    "privileges": [
+        {
+            "name": "WebAccess",
+            "essential": false,
+            "parameters": ["https://*"]
+        }
+    ]
+}

@@ -1,0 +1,26 @@
+{
+    "visual":{
+        "name":"multitext_filter",
+        "displayName":"multitext_filter",
+        "guid":"multitext_filter663ADFD2F7AD4369998BE117D8F5ECB5",
+        "visualClassName":"Visual",
+        "version":"1.0.0.0",
+        "description":"The Multi-Field Text Slicer enables Power BI report users to search for specific text across all selected fields and filters the report based on matches in any of them",
+        "supportUrl":"https://example.com/",
+        "gitHubUrl":""
+    },
+    "apiVersion":"5.3.0",
+    "author":{
+        "name":"VictorMash",
+        "email":"mashkov.vic@gmail.com"
+    },
+    "assets":{
+        "icon":"assets/icon.png"
+    },
+    "externalJS":null,
+    "style":"style/visual.less",
+    "capabilities":"capabilities.json",
+    "dependencies":null,
+    "stringResources":[],
+    "version":"1.0.0.0"
+}
