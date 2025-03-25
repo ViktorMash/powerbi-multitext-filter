@@ -4,9 +4,10 @@ import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisual = powerbi.extensibility.visual.IVisual;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import ISelectionManager = powerbi.extensibility.ISelectionManager;
-import DataView = powerbi.DataView;
+//import DataView = powerbi.DataView;
 import ISelectionId = powerbi.visuals.ISelectionId;
-import DataViewCategoryColumn = powerbi.DataViewCategoryColumn;
+//import DataViewCategoryColumn = powerbi.DataViewCategoryColumn;
+import "./../style/visual.less"
 
 interface TextSlicerDataPoint {
     value: string;
@@ -40,30 +41,34 @@ export class Visual implements IVisual {
         this.container.className = "text-slicer-container";
         options.element.appendChild(this.container);
         
+        // Create search container for input and buttons
+        const searchContainer = document.createElement("div");
+        searchContainer.className = "search-container";
+        this.container.appendChild(searchContainer);
+
         // Create text input field
         this.textInput = document.createElement("input");
         this.textInput.type = "text";
         this.textInput.className = "slicer-text-input";
-        this.textInput.placeholder = "Enter values (comma separated)";
-        this.container.appendChild(this.textInput);
-        
-        // Container for buttons
-        const buttonContainer = document.createElement("div");
-        buttonContainer.className = "button-container";
-        this.container.appendChild(buttonContainer);
-        
+        this.textInput.placeholder = "Search";
+        searchContainer.appendChild(this.textInput);
+
         // Create apply filter button
         this.filterButton = document.createElement("button");
-        this.filterButton.textContent = "Apply Filter";
         this.filterButton.className = "slicer-filter-button";
-        buttonContainer.appendChild(this.filterButton);
-        
+        this.filterButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+            <path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>`;
+        searchContainer.appendChild(this.filterButton);
+
         // Create clear filter button
         this.clearButton = document.createElement("button");
-        this.clearButton.textContent = "Clear";
         this.clearButton.className = "slicer-clear-button";
-        buttonContainer.appendChild(this.clearButton);
-        
+        this.clearButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+            <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>`;
+        searchContainer.appendChild(this.clearButton);
+
         // Create results container
         this.resultsContainer = document.createElement("div");
         this.resultsContainer.className = "results-container";
@@ -84,114 +89,9 @@ export class Visual implements IVisual {
                 this.applyFilter();
             }
         });
-        
-        // Add styles
-        this.addStyles();
     }
     
-    private addStyles() {
-        const style = document.createElement("style");
-        style.textContent = `
-            .text-slicer-container {
-                display: flex;
-                flex-direction: column;
-                padding: 10px;
-                height: 100%;
-                box-sizing: border-box;
-                font-family: "Segoe UI", sans-serif;
-                overflow: auto;
-            }
-            
-            .slicer-text-input {
-                padding: 8px;
-                margin-bottom: 10px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 14px;
-            }
-            
-            .button-container {
-                display: flex;
-                gap: 8px;
-                margin-bottom: 10px;
-            }
-            
-            .slicer-filter-button {
-                padding: 8px;
-                background-color: #0078D4;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 14px;
-                flex: 1;
-            }
-            
-            .slicer-clear-button {
-                padding: 8px;
-                background-color: #f0f0f0;
-                color: #333;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 14px;
-            }
-            
-            .slicer-filter-button:hover {
-                background-color: #0069BD;
-            }
-            
-            .slicer-clear-button:hover {
-                background-color: #e0e0e0;
-            }
-            
-            .filter-message {
-                padding: 10px;
-                background-color: #f0f0f0;
-                margin-bottom: 10px;
-                border-radius: 4px;
-                font-size: 12px;
-            }
-            
-            .results-container {
-                display: flex;
-                flex-direction: column;
-                gap: 5px;
-                overflow-y: auto;
-                max-height: calc(100% - 100px);
-            }
-            
-            .matched-fields {
-                padding: 8px;
-                background-color: #f0f7ff;
-                border-radius: 4px;
-                font-size: 12px;
-                border-left: 3px solid #0078D4;
-            }
-            
-            .field-entry {
-                margin: 3px 0;
-            }
-            
-            .table-name {
-                font-weight: bold;
-            }
-            
-            .column-name {
-                margin-left: 10px;
-            }
-            
-            .no-results {
-                padding: 8px;
-                background-color: #fff4e5;
-                border-radius: 4px;
-                font-size: 12px;
-                border-left: 3px solid #ff8c00;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    
+  
     private applyFilter() {
         const filterText = this.textInput.value.trim();
         

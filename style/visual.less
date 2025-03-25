@@ -1,9 +1,93 @@
-p {
-    font-size: 20px;
-    font-weight: bold;
-    em {
-        background: yellow;
-        padding: 5px;
-        
+.text-slicer-container {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    height: 100%;
+    box-sizing: border-box;
+    font-family: "Segoe UI", sans-serif;
+    overflow: auto;
+}
+
+.search-container {
+    display: flex;
+    flex-direction: row;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+}
+
+.slicer-text-input {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    font-size: 14px;
+    height: 40px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.slicer-filter-button, .slicer-clear-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: #f8f8f8;
+    color: #333;
+    border: none;
+    border-left: 1px solid #ccc;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover {
+        background-color: #e6e6e6;
     }
+    
+    svg {
+        width: 18px;
+        height: 18px;
+    }
+}
+    
+.filter-message {
+    padding: 10px;
+    background-color: #f0f0f0;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.results-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    max-height: calc(100% - 100px);
+}
+
+.matched-fields {
+    padding: 8px;
+    background-color: #f0f7ff;
+    border-radius: 4px;
+    font-size: 12px;
+    border-left: 3px solid #0078D4;
+}
+
+.field-entry {
+    margin: 3px 0;
+}
+
+.table-name {
+    font-weight: bold;
+}
+
+.column-name {
+    margin-left: 10px;
+}
+
+.no-results {
+    padding: 8px;
+    background-color: #fff4e5;
+    border-radius: 4px;
+    font-size: 12px;
+    border-left: 3px solid #ff8c00;
 }
