@@ -1,13 +1,19 @@
 # Multi-Field Text Slicer 
-allows users to search across multiple fields and filter Power BI reports based on matches. The implementation includes a search box with filter/clear buttons and displays matched fields grouped by table name.
+### for Power BI
+A custom Power BI visual that allows users to search across multiple fields and filter visualizations based on text matches. This slicer provides a flexible way to filter your reports by searching for text across different tables and columns simultaneously.
 
-### Features
+![alt text](./assets/filter%20example.png)
 
-**Multi-field searching:** Search across all selected fields at once. Enter multiple search terms separated by commas
-**Results display:** See which tables and fields contain matching values
-**Case-insensitive:** Matches text regardless of case
+### How It Works
 
-### Structure
+1. Add one or more fields to the visual
+2. Type one or more search terms in the input box, separate multiple terms with commas, doesn't matter uppercase or lowercase
+3. Click the search button or press Enter
+4. See which fields contained matches, grouped by table name. Also all visualisations will be filtered according to the found values
+5. Click the clear button to reset the filter
+
+
+### Project structure
 
 ```bash
 multitext_filter/
@@ -30,7 +36,6 @@ multitext_filter/
 ├── tsconfig.json                # TypeScript compilation configuration
 ├── package.json                 # Node.js package configuration and dependencies
 ├── package-lock.json            # Exact versions of dependencies
-#├── eslint.config.mjs            # Code quality checking configuration
 ├── README.md                    # Basic documentation
 ```
 
@@ -38,6 +43,8 @@ multitext_filter/
 
 Clone this repository
 Run `npm install` to install dependencies
+
+### Refine visual
 Run `pbiviz start` to start the development server
 - Activate **Developer mode** at **Settings > Developer settings**
 - Open your report in Power BI Service

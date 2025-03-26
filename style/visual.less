@@ -39,23 +39,50 @@
     padding: 0;
 
     &:hover {
-        background-color: #e6e6e6;
+        background-color: #c1c9eb;
     }
     
     svg {
         width: 18px;
         height: 18px;
+        display: block;
+        fill: #333;
     }
 }
-    
-.filter-message {
+
+// -- Styles for all text messages --
+.message-base {
     padding: 10px;
-    background-color: #f0f0f0;
     margin-bottom: 10px;
     border-radius: 4px;
     font-size: 12px;
 }
 
+.status-message {
+    &:extend(.message-base);
+    background-color: #f0f0f0;
+}
+
+.error-message {
+    &:extend(.message-base);
+    background-color: #ffe6e6;
+    color: #d32f2f;
+}
+
+.no-matches {
+    &:extend(.message-base);
+    background-color: #fff4e5;
+    border-left: 3px solid #ff8c00;
+}
+
+.matched-fields {
+    &:extend(.message-base);
+    background-color: #f0f7ff;
+    border-left: 3px solid #0078D4;
+}
+
+// -- Styles for the result container described found items --
+// this is in the 'matched-fields' container
 .results-container {
     display: flex;
     flex-direction: column;
@@ -64,30 +91,25 @@
     max-height: calc(100% - 100px);
 }
 
-.matched-fields {
-    padding: 8px;
-    background-color: #f0f7ff;
-    border-radius: 4px;
-    font-size: 12px;
-    border-left: 3px solid #0078D4;
-}
 
 .field-entry {
     margin: 3px 0;
 }
 
+// title text string "term found in:"
+.term-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 8px;
+    margin-bottom: 14px;
+}
+
+// table text string that contains fields with found items
 .table-name {
     font-weight: bold;
 }
 
+// column text string that contains found items
 .column-name {
     margin-left: 10px;
-}
-
-.no-results {
-    padding: 8px;
-    background-color: #fff4e5;
-    border-radius: 4px;
-    font-size: 12px;
-    border-left: 3px solid #ff8c00;
 }

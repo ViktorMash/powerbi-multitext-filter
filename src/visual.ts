@@ -1,13 +1,13 @@
+"use strict";
+
 import powerbi from "powerbi-visuals-api";
+import "./../style/visual.less"
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisual = powerbi.extensibility.visual.IVisual;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import ISelectionManager = powerbi.extensibility.ISelectionManager;
-//import DataView = powerbi.DataView;
 import ISelectionId = powerbi.visuals.ISelectionId;
-//import DataViewCategoryColumn = powerbi.DataViewCategoryColumn;
-import "./../style/visual.less"
 
 interface TextSlicerDataPoint {
     value: string;
@@ -16,9 +16,11 @@ interface TextSlicerDataPoint {
     selectionId: ISelectionId;
 }
 
-interface MatchedField {
+interface FieldMatch {
     tableName: string;
     columnName: string;
+    count: number;
+    uniqueValues: Set<string>; // Track unique values to avoid duplicates
 }
 
 export class Visual implements IVisual {
@@ -33,6 +35,10 @@ export class Visual implements IVisual {
     private resultsContainer: HTMLElement;
     
     constructor(options: VisualConstructorOptions) {
+        /*
+            Create HTML elements (container, input field, buttons, result container)
+            Add event handlers for buttons and input field
+        */
         this.host = options.host;
         this.selectionManager = options.host.createSelectionManager();
         
@@ -53,23 +59,45 @@ export class Visual implements IVisual {
         this.textInput.placeholder = "Search";
         searchContainer.appendChild(this.textInput);
 
-        // Create apply filter button
+        // === Create apply filter button ===
         this.filterButton = document.createElement("button");
         this.filterButton.className = "slicer-filter-button";
-        this.filterButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-            <path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-        </svg>`;
+
+        // Create apply filter SVG element
+        const svgApplyFilter = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgApplyFilter.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        svgApplyFilter.setAttribute("viewBox", "0 0 24 24");
+        svgApplyFilter.setAttribute("width", "16");
+        svgApplyFilter.setAttribute("height", "16");
+
+        // Create path element
+        const pathApplyFilter = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        pathApplyFilter.setAttribute("d", "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z");
+        
+        svgApplyFilter.appendChild(pathApplyFilter); // Add path to SVG
+        this.filterButton.appendChild(svgApplyFilter); // Add SVG to the button
         searchContainer.appendChild(this.filterButton);
 
-        // Create clear filter button
+        // === Create clear filter button ===
         this.clearButton = document.createElement("button");
         this.clearButton.className = "slicer-clear-button";
-        this.clearButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-            <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-        </svg>`;
+
+        // Create clear filter SVG element
+        const svgClearFilter = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svgClearFilter.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        svgClearFilter.setAttribute("viewBox", "0 0 24 24");
+        svgClearFilter.setAttribute("width", "16");
+        svgClearFilter.setAttribute("height", "16");
+
+        // Create path element
+        const pathClearFilter = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        pathClearFilter.setAttribute("d", "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z");
+        
+        svgClearFilter.appendChild(pathClearFilter); // Add path to SVG
+        this.clearButton.appendChild(svgClearFilter); // Add SVG to the button
         searchContainer.appendChild(this.clearButton);
 
-        // Create results container
+        // === Create results container ===
         this.resultsContainer = document.createElement("div");
         this.resultsContainer.className = "results-container";
         this.container.appendChild(this.resultsContainer);
@@ -93,6 +121,11 @@ export class Visual implements IVisual {
     
   
     private applyFilter() {
+        /*
+            Get text from the input field
+            Split into separate values ​​by commas
+            If there are values ​​to search for and target columns, apply a filter via applyMultiFieldFilter
+        */
         const filterText = this.textInput.value.trim();
         
         // Clear results
@@ -125,54 +158,92 @@ export class Visual implements IVisual {
     }
     
     private applyMultiFieldFilter(filterValues: string[]) {
+        /*
+            Main search function
+
+            If there are matches:
+              - Group the found fields by table and column
+              - Collect all selectionId for matching values
+              - Apply the selection via selectionManager.select()
+              - Display information about matches in the interface
+
+            If there are no matches:
+              - display a message and apply an empty selection
+        */
+
         if (this.targetColumns.length === 0 || this.dataPoints.length === 0) {
             return;
-        }
+        }    
         
-        // Find matching dataPoints and their fields
-        const matchingPoints = this.dataPoints.filter(dataPoint => 
+        // Create data structure to store matches for each term
+        const termMatches = new Map<string, Map<string, FieldMatch>>();
+
+        // For each search term, find matches
+        filterValues.forEach(term => {
+            // Find data points matching this term
+            const matchesForTerm = this.dataPoints.filter(dataPoint => 
+                dataPoint.value.toLowerCase().includes(term.toLowerCase())
+            );
+            
+            // Create or get the match map for this term
+            if (!termMatches.has(term)) {
+                termMatches.set(term, new Map());
+            }
+            
+            // Count matches by field for this term
+            matchesForTerm.forEach(point => {
+                const key = `${point.tableName}.${point.columnName}`;
+                const fieldMap = termMatches.get(term);
+                
+                // Count actual occurrences of the term in this value
+                const lowerCaseValue = point.value.toLowerCase();
+                const lowerCaseTerm = term.toLowerCase();
+                let termCount = 0;
+                let pos = 0;
+                
+                // Count all occurrences of the term in this value
+                while ((pos = lowerCaseValue.indexOf(lowerCaseTerm, pos)) !== -1) {
+                    termCount++;
+                    pos += lowerCaseTerm.length;
+                }
+                
+                if (!fieldMap.has(key)) {
+                    // First time seeing this field, initialize with current value
+                    fieldMap.set(key, {
+                        tableName: point.tableName,
+                        columnName: point.columnName,
+                        count: termCount,
+                        uniqueValues: new Set([point.value])
+                    });
+                } else {
+                    const entry = fieldMap.get(key);
+                    // Only count if this is a new unique value we haven't seen before
+                    if (!entry.uniqueValues.has(point.value)) {
+                        entry.count += termCount;
+                        entry.uniqueValues.add(point.value);
+                    }
+                }
+            });
+        });
+        
+        // Collect all matching data points for selection
+        const allMatchingPoints = this.dataPoints.filter(dataPoint => 
             filterValues.some(filterValue => 
                 dataPoint.value.toLowerCase().includes(filterValue.toLowerCase())
             )
         );
         
         // If we have matches, apply the filter
-        if (matchingPoints.length > 0) {
-            // Get unique table.column combinations where matches were found
-            const matchedFields: MatchedField[] = [];
-            const fieldMap = new Map<string, MatchedField>();
-            
-            matchingPoints.forEach(point => {
-                const key = `${point.tableName}.${point.columnName}`;
-                if (!fieldMap.has(key)) {
-                    fieldMap.set(key, {
-                        tableName: point.tableName,
-                        columnName: point.columnName
-                    });
-                }
-            });
-            
-            // Convert map to array
-            fieldMap.forEach(field => matchedFields.push(field));
-            
-            // Group fields by table
-            const tableFieldsMap = new Map<string, string[]>();
-            matchedFields.forEach(field => {
-                if (!tableFieldsMap.has(field.tableName)) {
-                    tableFieldsMap.set(field.tableName, []);
-                }
-                tableFieldsMap.get(field.tableName).push(field.columnName);
-            });
-            
+        if (allMatchingPoints.length > 0) {
             // Collect all selection IDs
-            const selectionIds = matchingPoints.map(p => p.selectionId);
+            const selectionIds = allMatchingPoints.map(p => p.selectionId);
             
             // Apply selection through Selection API
             this.selectionManager.select(selectionIds, false)
                 .then(() => {
-                    // Display which fields matched (grouped by table)
-                    this.displayMatchedFields(tableFieldsMap, filterValues);
-                    console.log("Filter applied with matches in", matchedFields.length, "fields");
+                    // Display which fields matched (grouped by term, then by table)
+                    this.displayMatchedFieldsByTerm(termMatches, filterValues);
+                    console.log("Filter applied with matches for", termMatches.size, "terms");
                 })
                 .catch(error => {
                     console.error("Error applying filter:", error);
@@ -183,52 +254,96 @@ export class Visual implements IVisual {
             this.showNoResults(filterValues);
         }
     }
-    
-    private displayMatchedFields(tableFieldsMap: Map<string, string[]>, filterValues: string[]) {
+
+    private displayMatchedFieldsByTerm(
+        termMatches: Map<string, Map<string, {tableName: string, columnName: string, count: number}>>, 
+        filterValues: string[]
+    ) {
+        /*
+            Displays search results in UI:
+            
+            - Clears previous results
+            - Shows search term information
+            - For each search term with matches:
+                - Creates a section with term title
+                - Groups matches by table
+                - For each table, displays:
+                    * Table name
+                    * List of fields with match counts
+        */
+        
         // Clear previous results
         this.clearResults();
         
         // Create a message for the search terms
         const messageElem = document.createElement("div");
-        messageElem.className = "filter-message";
-        messageElem.textContent = `Search term(s): ${filterValues.join(", ")}`;
+        messageElem.className = "status-message";
+        const termText = filterValues.length > 1 ? "terms" : "term";
+        messageElem.textContent = `Searching ${termText}: ${filterValues.join(", ")}`;
         this.resultsContainer.appendChild(messageElem);
         
-        // Create container for matched fields
-        const matchedFieldsElem = document.createElement("div");
-        matchedFieldsElem.className = "matched-fields";
-        
-        const titleElem = document.createElement("strong");
-        titleElem.textContent = "Found in:";
-        matchedFieldsElem.appendChild(titleElem);
-        
-        // Convert map to array and sort by table name
-        const tables = Array.from(tableFieldsMap.keys()).sort();
-        
-        // Add each table and its fields
-        tables.forEach(tableName => {
-            const fields = tableFieldsMap.get(tableName).sort(); // Sort fields alphabetically
+        // For each term create a results block
+        filterValues.forEach(term => {
+            const fieldMap = termMatches.get(term);
             
-            const tableEntry = document.createElement("div");
-            tableEntry.className = "field-entry";
+            // Skip terms without matches
+            if (!fieldMap || fieldMap.size === 0) {
+                return;
+            }
             
-            const tableNameElem = document.createElement("div");
-            tableNameElem.className = "table-name";
-            tableNameElem.textContent = tableName;
-            tableEntry.appendChild(tableNameElem);
+            // Create container for matches for this term
+            const termResultsElem = document.createElement("div");
+            termResultsElem.className = "matched-fields";
             
-            // Add each field within this table
-            fields.forEach(fieldName => {
-                const fieldElem = document.createElement("div");
-                fieldElem.className = "column-name";
-                fieldElem.textContent = fieldName;
-                tableEntry.appendChild(fieldElem);
+            // Title for the term
+            const titleElem = document.createElement("div");
+            titleElem.className = "term-title";
+            titleElem.textContent = `"${term}" found in:`;
+            termResultsElem.appendChild(titleElem);
+            
+            // Group fields by table
+            const tableFieldsMap = new Map<string, {field: string, count: number}[]>();
+            
+            fieldMap.forEach((info, key) => {
+                if (!tableFieldsMap.has(info.tableName)) {
+                    tableFieldsMap.set(info.tableName, []);
+                }
+                tableFieldsMap.get(info.tableName).push({
+                    field: info.columnName,
+                    count: info.count
+                });
             });
             
-            matchedFieldsElem.appendChild(tableEntry);
+            // Sort tables
+            const tables = Array.from(tableFieldsMap.keys()).sort();
+            
+            // Add each table and its fields
+            tables.forEach(tableName => {
+                const fields = tableFieldsMap.get(tableName).sort((a, b) => a.field.localeCompare(b.field));
+                
+                // Create container for found tables and columns
+                const tableEntry = document.createElement("div");
+                tableEntry.className = "field-entry";
+                
+                // Add table name
+                const tableNameElem = document.createElement("div");
+                tableNameElem.className = "table-name";
+                tableNameElem.textContent = tableName;
+                tableEntry.appendChild(tableNameElem);
+                
+                // Add each field within this table
+                fields.forEach(fieldInfo => {
+                    const fieldElem = document.createElement("div");
+                    fieldElem.className = "column-name";
+                    fieldElem.textContent = `${fieldInfo.field} (${fieldInfo.count} match${fieldInfo.count !== 1 ? 'es' : ''})`;
+                    tableEntry.appendChild(fieldElem);
+                });
+                
+                termResultsElem.appendChild(tableEntry);
+            });
+            
+            this.resultsContainer.appendChild(termResultsElem);
         });
-        
-        this.resultsContainer.appendChild(matchedFieldsElem);
     }
     
     private showNoResults(filterValues: string[]) {
@@ -237,7 +352,7 @@ export class Visual implements IVisual {
         
         // Create a message for no results
         const messageElem = document.createElement("div");
-        messageElem.className = "no-results";
+        messageElem.className = "no-matches";
         messageElem.textContent = `No matches found for: ${filterValues.join(", ")}`;
         this.resultsContainer.appendChild(messageElem);
     }
@@ -269,8 +384,8 @@ export class Visual implements IVisual {
                 // Selection successfully cleared
                 this.clearResults();
                 const messageElem = document.createElement("div");
-                messageElem.className = "filter-message";
-                messageElem.textContent = "Filter reset";
+                messageElem.className = "status-message";
+                messageElem.textContent = "Filter has been cleared";
                 this.resultsContainer.appendChild(messageElem);
             })
             .catch(error => {
@@ -284,15 +399,23 @@ export class Visual implements IVisual {
         
         // Create error message
         const message = document.createElement("div");
-        message.className = "filter-message";
-        message.style.backgroundColor = "#ffe6e6";
-        message.style.color = "#d32f2f";
+        message.className = "error-message";
         message.textContent = text;
         
         this.resultsContainer.appendChild(message);
     }
     
     public update(options: VisualUpdateOptions) {
+        /*
+            Get data from Power BI
+            Save target columns for search
+            For each category (field) create dataPoints with:
+              - value
+              - table name
+              - column name
+              - selectionId for selection API
+        */
+
         if (!options || !options.dataViews || !options.dataViews[0]) {
             return;
         }
